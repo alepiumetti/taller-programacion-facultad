@@ -40,4 +40,5 @@ void recorreCola();
 void mostrarScheduler();
 void listarFile();
 int procesadorLibre();
+void asignaProcesador(proceso *);
 void limpiar_buffer();

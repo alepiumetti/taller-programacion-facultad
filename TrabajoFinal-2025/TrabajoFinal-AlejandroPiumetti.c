@@ -54,7 +54,7 @@ void asignaEstado(proceso *proceso)
 
     if (strcmp(proceso->estado, "Terminado") == 0)
     {
-        strcpy(proceso->estado, "Terminado");
+        printf("El proceso está terminado. No se puede cambiar su estado.\n");
         return;
     }
 
@@ -68,6 +68,14 @@ void asignaEstado(proceso *proceso)
     }
     else if (strcmp(proceso->estado, "Esperando") == 0)
     {
+        if(procesadorLibre() == FALSE)
+        {
+            printf("No hay procesadores libres. El proceso permanecerá en estado 'Esperando'.\n");
+            return;
+        }
+
+        // TODO: Antes de asignar a un proceso, el procesador y el estado corriendo, verificar si es el que tiene la prioridad más baja de todos los procesos listos
+        
         strcpy(proceso->estado, "Corriendo");
     }
     else if (strcmp(proceso->estado, "Corriendo") == 0)
@@ -86,7 +94,6 @@ void asignaEstado(proceso *proceso)
 encuentre*/
 void ingresaProceso()
 {
-    printf("Ingresa proceso\n");
     if (push() == TRUE)
     {
         printf("Proceso ingresado correctamente.\n");
@@ -110,11 +117,12 @@ void recorreCola()
 {
     for (int i = 0; i < SIZE_SCHEDULER; i++)
     {
-        printf("Recorriendo índice %d...\n", i);
+        printf("Recorriendo índice %d...", i);
         if (scheduling[i] != NULL)
         {
             asignaEstado(scheduling[i]);
         }
+        printf("\n");
     }
 }
 /*Lista los procesos de la cola*/
@@ -122,11 +130,12 @@ void mostrarScheduler()
 {
     for (int i = 0; i < SIZE_SCHEDULER; i++)
     {
-        printf("Procesando índice %d...\n", i);
+        printf("Procesando índice %d...", i);
         if (scheduling[i] != NULL)
         {
-            printf("Proceso ID: %d | Estado actual: %s -> ", scheduling[i]->proceso, scheduling[i]->estado);
+            printf("<- Proceso ID: %d | Estado actual: %s", scheduling[i]->proceso, scheduling[i]->estado);
         }
+        printf("\n");
     }
 };
 /*Lista los procesos registrados en el archivo*/

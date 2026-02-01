@@ -15,14 +15,16 @@ int push()
 {
     for (int i = 0; i < SIZE_SCHEDULER; i++)
     {
+        printf("Buscando espacio en índice %d...\n", i);
         if (scheduling[i] == NULL)
         {
             scheduling[i] = malloc(sizeof(proceso));
             asignaEstado(scheduling[i]);
             scheduling[i]->procesador = -1;
             scheduling[i]->proceso = NEW_ID;
-            ADD_PRIORITY;
             scheduling[i]->prioridad = priority;
+            ADD_PRIORITY;
+            printf("Se agregó un nuevo proceso en el índice %d con ID %d y prioridad %d.\n", i, scheduling[i]->proceso, scheduling[i]->prioridad);
             return TRUE;
         }
     }
@@ -35,15 +37,23 @@ int procesadorLibre()
     int index = 0;
     int cantidadCorriendo = 0;
 
-    while (strcmp(scheduling[index]->estado, "Corriendo") != 0 && index < SIZE_SCHEDULER && cantidadCorriendo < 2)
+    while (scheduling[index] != NULL && index < SIZE_SCHEDULER && cantidadCorriendo < 2)
     {
+        printf("Revisando índice %d | Proceso en estado %s...\n", index, scheduling[index]->estado);
         if (strcmp(scheduling[index]->estado, "Corriendo") == 0)
         {
             cantidadCorriendo += 1;
         }
+        index += 1;
     }
 
     return cantidadCorriendo < 2 ? TRUE : FALSE;
+}
+
+void asignaProcesador (proceso * proceso){
+
+// TODO: Asignar un procesador libre al proceso haciendo el módulo 2 del ID del proceso +1 , resultando en 1 o 2. 
+    
 }
 
 /*
