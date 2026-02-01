@@ -1,0 +1,1 @@
+Polinomio * creaPolinomio (int orden)
