@@ -14,6 +14,7 @@
 #define SIN_ASIGNAR -1;
 #define TRUE 0
 #define FALSE 1
+#define IS_DEBUG 0
 
 #define CLEAR_CONSOLE system("clear")
 
@@ -28,10 +29,20 @@ typedef struct proceso
 static int id = 0;
 int priority = 0;
 
+int inicio = 0;
+int fin = 0;
+
 proceso *scheduling[SIZE_SCHEDULER];
+
+FILE *archivo;
 
 int pop();
 int push();
+int getTamanoScheduler();
+int getInicio();
+int getFin();
+int addFin();
+int addInicio();
 
 void asignaEstado(proceso *);
 void ingresaProceso();
@@ -40,5 +51,6 @@ void recorreCola();
 void mostrarScheduler();
 void listarFile();
 int procesadorLibre();
-void asignaProcesador(proceso *);
 void limpiar_buffer();
+int buscaProcesoPrioritario();
+int abreArchivo();

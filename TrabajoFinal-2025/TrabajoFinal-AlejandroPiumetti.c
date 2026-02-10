@@ -68,19 +68,24 @@ void asignaEstado(proceso *proceso)
     }
     else if (strcmp(proceso->estado, "Esperando") == 0)
     {
-        if(procesadorLibre() == FALSE)
+
+        int procesador = procesadorLibre();
+        if (procesador == 0)
         {
             printf("No hay procesadores libres. El proceso permanecerá en estado 'Esperando'.\n");
             return;
         }
+        // Antes de hacer el cambio de estado a "Corriendo" se verifica el proceso con la prioridad más baja.
+        int prioritario = buscaProcesoPrioritario();
 
-        // TODO: Antes de asignar a un proceso, el procesador y el estado corriendo, verificar si es el que tiene la prioridad más baja de todos los procesos listos
-        
+        proceso->procesador = procesador;
+
         strcpy(proceso->estado, "Corriendo");
     }
     else if (strcmp(proceso->estado, "Corriendo") == 0)
     {
         strcpy(proceso->estado, "Terminado");
+        proceso->procesador = -1;
     }
     else
     {
@@ -105,11 +110,28 @@ void ingresaProceso()
 }
 /*Quita el proceso de la cola liberando y retornando el lugar
 liberado*/
+
 int terminaProceso()
 {
-    printf("Termina Proceso\n");
-    pop();
-    return 0;
+    for (int i = 0; i < SIZE_SCHEDULER; i++)
+    {
+        if (scheduling[i] != NULL)
+        {
+            asignaEstado(scheduling[i]);
+        }
+        printf("\n");
+    }
+
+    if (pop() == TRUE)
+    {
+        printf("Proceso terminado correctamente.\n");
+        return TRUE;
+    }
+    else
+    {
+        printf("No se pudo terminar el proceso.\n");
+        return FALSE;
+    }
 }
 /*Recorrera todos los procesos de la cola, haciendo el cambio del
 estado de los mismos*/
@@ -117,27 +139,21 @@ void recorreCola()
 {
     for (int i = 0; i < SIZE_SCHEDULER; i++)
     {
-        printf("Recorriendo índice %d...", i);
         if (scheduling[i] != NULL)
         {
-            asignaEstado(scheduling[i]);
-        }
-        printf("\n");
-    }
-}
-/*Lista los procesos de la cola*/
-void mostrarScheduler()
-{
-    for (int i = 0; i < SIZE_SCHEDULER; i++)
-    {
-        printf("Procesando índice %d...", i);
-        if (scheduling[i] != NULL)
-        {
-            printf("<- Proceso ID: %d | Estado actual: %s", scheduling[i]->proceso, scheduling[i]->estado);
+            // [index]-> {procesador;id;prioridad;estado}
+            printf("[%d] -> {%d;%d;%d;%s}", i, scheduling[i]->procesador == -1 ? 0 : scheduling[i]->procesador, scheduling[i]->proceso, scheduling[i]->prioridad, scheduling[i]->estado);
         }
         printf("\n");
     }
 };
+
+/*Lista los procesos de la cola*/
+void mostrarScheduler()
+{
+    printf("Mostrar Scheduler\n");
+};
+
 /*Lista los procesos registrados en el archivo*/
 void listarFile()
 {
