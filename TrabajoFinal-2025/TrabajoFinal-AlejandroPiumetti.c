@@ -7,7 +7,7 @@ COMISION 2
 */
 
 #include "./prototypes.h"
-#include "./utils.c"
+#include "./utils.h"
 
 int main()
 {
@@ -17,7 +17,10 @@ int main()
         CLEAR_CONSOLE;
         printf("===== SCHEDULER DE PROCESOS =====\n");
         printf("\n");
-        printf("(I)ngresa proceso | (T)ermina proceso | (R)ecorre cola | (M)ostrar Scheduler | (L)istar File | (S)alir: ");
+        printf(" Procesos en Scheduler: %d | Inicio: %d | Fin: %d | Tamaño Scheduler %d\n", getTamanoScheduler(), inicio, fin, getTamanoScheduler());
+        printf("Procesadores disponibles: %d | CPU1: %s (%d) | CPU2: %s (%d)\n", procesadorLibre(), cpu1 == -1 ? "Libre" : "Ocupado", cpu1, cpu2 == -1 ? "Libre" : "Ocupado", cpu2);
+        printf("\n");
+        printf("(I)ngresa proceso | (T)ermina proceso | (R)ecorre cola | (M)ostrar Scheduler | (L)istar File | (G)uardar y Salir | (S)alir: ");
         opcion = toupper(getchar());
 
         limpiar_buffer();
@@ -41,59 +44,94 @@ int main()
         default:
             break;
         }
-        if (opcion != 'S')
+        if (opcion != 'S' && opcion != 'G')
+        {
             pausa();
+        }
 
-    } while (opcion != 'S');
-    return 0;
+    } while (opcion != 'S' && opcion != 'G');
+
+    if (opcion == 'S')
+    {
+        if (remove(FILE_NAME) == 0)
+        {
+            printf("Programa terminado con éxito y el archivo '%s' ha sido eliminado.\n", FILE_NAME);
+        }
+        else
+        {
+            printf("Programa terminado con error\n Error al eliminar archivo '%s'.\n", FILE_NAME);
+            return 1;
+        }
+    }
+    else
+    {
+        printf("Programa terminado con éxito y el archivo '%s' ha sido guardado.\n", FILE_NAME);
+        return 0;
+    }
 }
 
 /* Asigna el siguiente estado según el orden Nuevo->Listo->Esperando->Corriendo->Terminado */
-void asignaEstado(proceso *proceso)
+void asignaEstado(proceso *pproceso, int i)
 {
 
-    if (strcmp(proceso->estado, "Terminado") == 0)
+    if (strcmp(pproceso->estado, "Terminado") == 0)
     {
         printf("El proceso está terminado. No se puede cambiar su estado.\n");
         return;
     }
 
-    if (strcmp(proceso->estado, "Nuevo") == 0)
+    if (strcmp(pproceso->estado, "Nuevo") == 0)
     {
-        strcpy(proceso->estado, "Listo");
+        strcpy(pproceso->estado, "Listo");
     }
-    else if (strcmp(proceso->estado, "Listo") == 0)
+    else if (strcmp(pproceso->estado, "Listo") == 0)
     {
-        strcpy(proceso->estado, "Esperando");
+        strcpy(pproceso->estado, "Esperando");
     }
-    else if (strcmp(proceso->estado, "Esperando") == 0)
+    else if (strcmp(pproceso->estado, "Esperando") == 0)
     {
 
-        int procesador = procesadorLibre();
-        if (procesador == 0)
+        if (cpu1 != -1 && cpu2 != -1)
         {
             printf("No hay procesadores libres. El proceso permanecerá en estado 'Esperando'.\n");
             return;
         }
         // Antes de hacer el cambio de estado a "Corriendo" se verifica el proceso con la prioridad más baja.
-        int prioritario = buscaProcesoPrioritario();
+        // int prioritario = buscaProcesoPrioritario();
 
-        proceso->procesador = procesador;
-
-        strcpy(proceso->estado, "Corriendo");
+        if (cpu1 == -1)
+        {
+            cpu1 = pproceso->proceso;
+            pproceso->procesador = 1;
+            strcpy(pproceso->estado, "Corriendo");
+        }
+        else if (cpu2 == -1)
+        {
+            cpu2 = pproceso->proceso;
+            pproceso->procesador = 2;
+            strcpy(pproceso->estado, "Corriendo");
+        }
     }
-    else if (strcmp(proceso->estado, "Corriendo") == 0)
+    else if (strcmp(pproceso->estado, "Corriendo") == 0)
     {
-        strcpy(proceso->estado, "Terminado");
-        proceso->procesador = -1;
+        strcpy(pproceso->estado, "Terminado");
+        pproceso->procesador = -1;
+        if (cpu1 == pproceso->proceso)
+        {
+            cpu1 = -1;
+        }
+        else if (cpu2 == pproceso->proceso)
+        {
+            cpu2 = -1;
+        }
     }
     else
     {
-        strcpy(proceso->estado, "Nuevo");
+        strcpy(pproceso->estado, "Nuevo");
     }
 
-    printf("El nuevo estado del proceso es: %s\n", proceso->estado);
-};
+    printf("[%d] -> El nuevo estado del proceso %d es: %s\n", i, pproceso->proceso, pproceso->estado);
+}
 
 /* Ingresa el proceso al Scheduler en el primer espacio libre que
 encuentre*/
@@ -108,18 +146,13 @@ void ingresaProceso()
         printf("Scheduler lleno. No se puede ingresar el proceso.\n");
     }
 }
-/*Quita el proceso de la cola liberando y retornando el lugar
-liberado*/
 
 int terminaProceso()
 {
-    for (int i = 0; i < SIZE_SCHEDULER; i++)
+    if (getTamanoScheduler() == 0)
     {
-        if (scheduling[i] != NULL)
-        {
-            asignaEstado(scheduling[i]);
-        }
-        printf("\n");
+        printf("No hay procesos para terminar.\n");
+        return FALSE;
     }
 
     if (pop() == TRUE)
@@ -133,29 +166,80 @@ int terminaProceso()
         return FALSE;
     }
 }
-/*Recorrera todos los procesos de la cola, haciendo el cambio del
-estado de los mismos*/
+
+/*Recorrerá todos los procesos de la cola, haciendo el cambio del estado de los mismos*/
+
 void recorreCola()
 {
-    for (int i = 0; i < SIZE_SCHEDULER; i++)
+    int cantidadProcesos = getTamanoScheduler();
+    if (cantidadProcesos == 0)
     {
-        if (scheduling[i] != NULL)
-        {
-            // [index]-> {procesador;id;prioridad;estado}
-            printf("[%d] -> {%d;%d;%d;%s}", i, scheduling[i]->procesador == -1 ? 0 : scheduling[i]->procesador, scheduling[i]->proceso, scheduling[i]->prioridad, scheduling[i]->estado);
-        }
-        printf("\n");
+        printf("No hay procesos en el scheduler para recorrer.\n");
+        return;
     }
-};
 
-/*Lista los procesos de la cola*/
+    int tempInicio = inicio;
+    int procesados = 0;
+
+    while (procesados < cantidadProcesos)
+    {
+        if (scheduling[tempInicio] != NULL)
+        {
+            asignaEstado(scheduling[tempInicio], tempInicio);
+            procesados++;
+        }
+
+        tempInicio += 1;
+        if (tempInicio >= SIZE_SCHEDULER)
+        {
+            tempInicio = 0;
+        }
+    }
+}
+/*Lista los proceso de la cola */
 void mostrarScheduler()
 {
-    printf("Mostrar Scheduler\n");
-};
+    int cantidadProcesos = getTamanoScheduler();
+    if (cantidadProcesos == 0)
+    {
+        printf("No hay procesos en el scheduler.\n");
+        return;
+    }
+
+    int tempInicio = inicio;
+    int mostrados = 0;
+    while (mostrados < cantidadProcesos)
+    {
+        if (scheduling[tempInicio] != NULL)
+        {
+            printf("[%d] -> {%d;%d;%d;%s}", tempInicio, scheduling[tempInicio]->procesador == -1 ? 0 : scheduling[tempInicio]->procesador, scheduling[tempInicio]->proceso, scheduling[tempInicio]->prioridad, scheduling[tempInicio]->estado);
+            printf("\n");
+            mostrados++;
+        }
+
+        tempInicio += 1;
+        if (tempInicio >= SIZE_SCHEDULER)
+        {
+            tempInicio = 0;
+        }
+    }
+}
 
 /*Lista los procesos registrados en el archivo*/
 void listarFile()
 {
-    printf("Listar File\n");
-};
+
+    if (abreArchivo() == FALSE)
+    {
+        printf("No se pudo abrir el archivo para listar los procesos terminados.\n");
+        return;
+    }
+
+    char linea[100];
+    printf("Procesos terminados:\n");
+    while (fgets(linea, sizeof(linea), archivo) != NULL)
+    {
+        printf("%s", linea);
+    }
+    fclose(archivo);
+}

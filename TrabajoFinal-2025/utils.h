@@ -19,45 +19,35 @@ int push()
         return FALSE;
     }
 
-    addFin();
-
     scheduling[fin] = malloc(sizeof(proceso));
-    asignaEstado(scheduling[fin]);
+    asignaEstado(scheduling[fin], fin);
     scheduling[fin]->procesador = -1;
     scheduling[fin]->proceso = NEW_ID;
     scheduling[fin]->prioridad = priority;
     ADD_PRIORITY;
     printf("Se agregó un nuevo proceso en el índice %d con ID %d y prioridad %d.\n", fin, scheduling[fin]->proceso, scheduling[fin]->prioridad);
+    addFin();
 
     return TRUE;
 }
 
+/*
+Busca los procesos que están corriendo y busca si hay procesadores libres para asignarles, si no hay procesadores libres.
+*/
+
 int procesadorLibre()
 {
 
-    int index = 0;
-    int cantidadCorriendo = 0;
-    int procesadorLibre = 0;
-
-    while (scheduling[index] != NULL && index < SIZE_SCHEDULER && cantidadCorriendo < 2)
+    if (cpu1 == -1 && cpu2 == -1)
     {
-        if (strcmp(scheduling[index]->estado, "Corriendo") == 0)
-        {
-            cantidadCorriendo += 1;
-            procesadorLibre += scheduling[index]->procesador;
-        }
-        index += 1;
-    }
-
-    switch (procesadorLibre)
-    {
-    case 3: // En caso de que ambos procesadores están ocupados, se retorna FALSE
-        return 0;
-    case 1: // En caso de que el procesador 1 está ocupado, se asigna el procesador 2
         return 2;
-    case 2: // En caso de que el procesador 2 está ocupado, se asigna el procesador 1
-        return 1;
-    default: // En caso de que ambos procesadores están libres, se asigna el procesador 1
+    }
+    else if (cpu1 != -1 && cpu2 != -1)
+    {
+        return 0;
+    }
+    else
+    {
         return 1;
     }
 }
@@ -87,33 +77,55 @@ int pop()
         return FALSE;
     }
 
-    for (int i = 0; i < SIZE_SCHEDULER; i++)
+    int tempInicio = inicio;
+    int cantidadProcesos = getTamanoScheduler();
+    int revisados = 0;
+
+    do
     {
-        if (scheduling[i] != NULL)
+        if (scheduling[tempInicio] != NULL && strcmp(scheduling[tempInicio]->estado, "Terminado") == 0)
         {
-            if (strcmp(scheduling[i]->estado, "Terminado") == 0)
+
+            char tempEstado[SIZE_NOMBRE_ESTADO];
+            strcpy(tempEstado, scheduling[tempInicio]->estado);
+            int tempProceso = scheduling[tempInicio]->proceso;
+
+            int archivoEscrito = fprintf(archivo, "[%d] -> {%d;%d;%d;%s}\n", tempInicio, scheduling[tempInicio]->procesador == -1 ? 0 : scheduling[tempInicio]->procesador, scheduling[tempInicio]->proceso, scheduling[tempInicio]->prioridad, scheduling[tempInicio]->estado);
+            if (archivoEscrito < 0)
             {
-                int archivoEscrito = fprintf(archivo, "[%d] -> {%d;%d;%d;%s}", i, scheduling[i]->procesador == -1 ? 0 : scheduling[i]->procesador, scheduling[i]->proceso, scheduling[i]->prioridad, scheduling[i]->estado);
-                if (archivoEscrito < 0)
-                {
-                    printf("Error al escribir en el archivo.\n");
-                    fclose(archivo);
-                    return FALSE;
-                }
-                free(scheduling[i]);
-                // addInicio();
-                printf("Se elimino el proceso con el id %d\n", scheduling[i]->proceso);
-                printf("Archivo escrito: %d bytes\n", archivoEscrito);
+                printf("Error al escribir en el archivo.\n");
+                fclose(archivo);
+                return FALSE;
+            }
+            free(scheduling[tempInicio]);
+            scheduling[tempInicio] = NULL; // Para limpiar el espacio en la cola, se asigna NULL al índice correspondiente
+            // Sumo uno al inicio para mantener la coherencia de la cola
+            // Agrego 1 al tempInicio para seguir manipulando los datos correctamente
+            tempInicio = addInicio();
+
+            printf("Se elimino el proceso con el id %d\n", tempProceso);
+            printf("Archivo escrito: %d bytes\n", archivoEscrito);
+        }
+        else
+        {
+            tempInicio += 1;
+            if (tempInicio >= SIZE_SCHEDULER)
+            {
+                tempInicio = 0;
             }
         }
-    }
+
+        revisados++;
+
+    } while (revisados < cantidadProcesos);
     fclose(archivo);
     return TRUE;
 }
 
 int abreArchivo()
 {
-    archivo = fopen("tareas_finalizadas.txt", "w");
+
+    archivo = fopen(FILE_NAME, "a+");
 
     if (archivo == NULL)
     {
@@ -131,7 +143,7 @@ int getTamanoScheduler()
     {
         if (scheduling[i] != NULL)
         {
-            tamano += 1;
+            tamano++;
         }
     }
     return tamano;
@@ -163,12 +175,6 @@ int getFin()
 
 int addFin()
 {
-
-    if (getTamanoScheduler() == SIZE_SCHEDULER)
-    {
-        return -1;
-    }
-
     fin += 1;
     if (fin >= SIZE_SCHEDULER)
     {

@@ -15,10 +15,11 @@
 #define TRUE 0
 #define FALSE 1
 #define IS_DEBUG 0
+#define FILE_NAME "tareas_finalizadas.txt"
 
 #define CLEAR_CONSOLE system("clear")
 
-typedef struct proceso
+typedef struct Proceso
 {
     int procesador;
     int proceso;
@@ -26,11 +27,14 @@ typedef struct proceso
     char estado[SIZE_NOMBRE_ESTADO];
 } proceso;
 
-static int id = 0;
+// static int id = 0;
 int priority = 0;
 
 int inicio = 0;
 int fin = 0;
+
+int cpu1 = -1;
+int cpu2 = -1;
 
 proceso *scheduling[SIZE_SCHEDULER];
 
@@ -44,7 +48,7 @@ int getFin();
 int addFin();
 int addInicio();
 
-void asignaEstado(proceso *);
+void asignaEstado(proceso *, int i);
 void ingresaProceso();
 int terminaProceso();
 void recorreCola();
