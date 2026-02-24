@@ -21,7 +21,7 @@ int push()
 
     scheduling[fin] = malloc(sizeof(proceso));
     asignaEstado(scheduling[fin], fin);
-    scheduling[fin]->procesador = -1;
+    scheduling[fin]->procesador = 0;
     scheduling[fin]->proceso = NEW_ID;
     scheduling[fin]->prioridad = priority;
     ADD_PRIORITY;
